@@ -2,6 +2,8 @@ package com.example.demo.security;
 
 import com.auth0.jwt.JWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -20,6 +22,9 @@ import java.util.Date;
 import static com.auth0.jwt.algorithms.Algorithm.HMAC512;
 
 public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JWTAuthenticationFilter.class);
+
     private AuthenticationManager authenticationManager;
 
     public JWTAuthenticationFilter(AuthenticationManager authenticationManager) {
@@ -32,7 +37,7 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         try {
             com.example.demo.model.persistence.User credentials = new ObjectMapper()
                     .readValue(req.getInputStream(), com.example.demo.model.persistence.User.class);
-
+            log.info("Attempting authentication for username {}", credentials.getUsername());
             return authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             credentials.getUsername(),
@@ -40,6 +45,7 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                             new ArrayList<>())
             );
         } catch (IOException e) {
+            log.error("Authentication attempt failed ", e.getMessage());
             throw new RuntimeException(e);
         }
     }
@@ -55,5 +61,16 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                 .withExpiresAt(new Date(System.currentTimeMillis() + SecurityConstants.EXPIRATION_TIME))
                 .sign(HMAC512(SecurityConstants.SECRET.getBytes()));
         res.addHeader(SecurityConstants.HEADER_STRING, SecurityConstants.TOKEN_PREFIX + token);
+        log.info("User {} successfully authenticated, token issued", ((User) auth.getPrincipal()).getUsername());
     }
+
+    @Override
+    protected void unsuccessfulAuthentication(javax.servlet.http.HttpServletRequest request,
+                                              javax.servlet.http.HttpServletResponse response,
+                                              AuthenticationException failed)
+            throws IOException, javax.servlet.ServletException {
+        log.error("Authentication attempt failed. {}.", failed.getMessage());
+        super.unsuccessfulAuthentication(request, response, failed);
+    }
+
 }
