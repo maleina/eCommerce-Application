@@ -1,5 +1,5 @@
-<!-- The format of this file largely follows a layout given at https://stackify.com/logging-logback/ -->
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- The format of this file largely follows a layout given at https://stackify.com/logging-logback/ -->
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
